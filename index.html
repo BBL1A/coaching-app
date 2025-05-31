@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coaching App</title>
+<style>
+  :root {
+    --primary-color: #2f80ed;
+    --secondary-color: #56ccf2;
+    --background-color: #f9f9fb;
+    --text-color: #333;
+    --text-light: #666;
+    --danger-color: #eb5757;
+    --success-color: #27ae60;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background: var(--background-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1em 1.5em;
+    font-size: 1.4rem;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  main {
+    flex-grow: 1;
+    padding: 1em 1.5em;
+    max-width: 700px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  button, input[type=button], input[type=submit] {
+    background-color: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 0.5em 1.2em;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+  }
+  button:hover, input[type=button]:hover, input[type=submit]:hover {
+    background-color: var(--secondary-color);
+  }
+  button:disabled, input[type=button]:disabled, input[type=submit]:disabled {
+    background-color: #a4c8f9;
+    cursor: not-allowed;
+  }
+
+  .form-group {
+    margin-bottom: 1em;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.3em;
+    font-weight: 600;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="date"],
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 0.5em;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    resize: vertical;
+  }
+
+  textarea {
+    min-height: 80px;
+  }
+
+  .dashboard-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5em;
+    font-weight: 700;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1em;
+  }
+
+  table th, table td {
+    text-align: left;
+    padding: 0.6em 0.5em;
+    border-bottom: 1px solid #ddd;
+    vertical-align: middle;
+  }
+
+  table th {
+    background-color: #e8f0fe;
+  }
+
+  .label-status {
+    padding: 0.25em 0.5em;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    display: inline-block;
+    min-width: 85px;
+    text-align: center;
+  }
+
+  .label-pending {
+    background-color: var(--danger-color);
+  }
+
+  .label-completed {
+    background-color: var(--success-color);
+  }
+
+  .filter-bar {
+    margin-bottom: 1em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+
+  .filter-bar select,
+  .filter-bar input[type=date] {
+    flex-grow: 1;
+    max-width: 190px;
+  }
+
+  .flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .signoff-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .export-button {
+    background-color: #333;
+  }
+
+  .export-button:hover {
+    background-color: #555;
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 600px) {
+    .filter-bar {
+      flex-direction: column;
+    }
+    .filter-bar select,
+    .filter-bar input[type=date] {
+      max-width: 100%;
+    }
+    table th, table td {
+      font-size: 0.9rem;
+      padding: 0.4em 0.3em;
+    }
+  }
+
+  .error-message {
+    color: var(--danger-color);
+    margin-bottom: 1em;
+    font-weight: 600;
+  }
+
+</style>
+</head>
+<body>
+<header>Coaching App</header>
+<main id="app">
+  <!-- Content inserted by JS -->
+</main>
+<script>
+(() => {
+  // Predefined dummy users
+  const USERS = [
+    { id: 'super1', username: 'superadmin', password: 'super123', role: 'superadmin', name: 'Super Admin' },
+    { id: 'manager1', username: 'manager1', password: 'manager123', role: 'manager', name: 'Manager One', team: 'Team A', agents: ['agent1', 'agent2'] },
+    { id: 'manager2', username: 'manager2', password: 'manager123', role: 'manager', name: 'Manager Two', team: 'Team B', agents: ['agent3'] },
+    { id: 'agent1', username: 'agent1', password: 'agent123', role: 'agent', name: 'Agent One', team: 'Team A', manager: 'manager1' },
+    { id: 'agent2', username: 'agent2', password: 'agent123', role: 'agent', name: 'Agent Two', team: 'Team A', manager: 'manager1' },
+    { id: 'agent3', username: 'agent3', password: 'agent123', role: 'agent', name: 'Agent Three', team: 'Team B', manager: 'manager2' },
+  ];
+
+  // Coaching logs stored in localStorage under key "coachingLogs"
+  // Each log: {id, agentId, agentName, managerId, managerName, date, notes, actionPlan, followUpDate, signedOff, signedOffAt}
+
+  // Utilities
+  const qs = (sel, root=document) => root.querySelector(sel);
+  const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  // Format date to YYYY-MM-DD for inputs
+  function formatDateYYYYMMDD(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+  }
+  // Format date for user friendly display
+  function formatDateDisplay(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleDateString();
+  }
+
+  // Generate ID
+  function generateId() {
+    return 'log_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // Load logs
+  function loadLogs() {
+    const data = localStorage.getItem('coachingLogs');
+    if (!data) return [];
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return [];
+    }
+  }
+  // Save logs
+  function saveLogs(logs) {
+    localStorage.setItem('coachingLogs', JSON.stringify(logs));
+  }
+
+  // Save current user session to localStorage
+  function saveUserSession(user) {
+    localStorage.setItem('coachingAppUser', JSON.stringify(user));
+  }
+  // Load user session
+  function loadUserSession() {
+    const data = localStorage.getItem('coachingAppUser');
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return null;
+    }
+  }
+  // Clear session
+  function clearUserSession() {
+    localStorage.removeItem('coachingAppUser');
+  }
+
+  // Get user by id
+  function getUserById(id) {
+    return USERS.find(u => u.id === id);
+  }
+  // Get agent by id
+  function getAgentById(id) {
+    return USERS.find(u => u.role === 'agent' && u.id === id);
+  }
+  // Get manager by id
+  function getManagerById(id) {
+    return USERS.find(u => u.role === 'manager' && u.id === id);
+  }
+
+  // Get user display name
+  function getUserDisplayName(user) {
+    return user ? user.name : '(Unknown)';
+  }
+
+  // Render functions
+  function renderLogin() {
+    const html = `
+      <h2>Login</h2>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="usernameInput">Username</label>
+          <input type="text" id="usernameInput" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="passwordInput">Password</label>
+          <input type="password" id="passwordInput" required autocomplete="current-password" />
+        </div>
+        <button type="submit">Log In</button>
+        <p id="loginError" class="error-message" aria-live="polite"></p>
+      </form>
+      <p>Use usernames: superadmin, manager1, manager2, agent1, agent2, agent3<br/>Passwords: super123, manager123, agent123</p>
+    `;
+    qs('#app').innerHTML = html;
+
+    qs('#loginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const username = qs('#usernameInput').value.trim();
+      const password = qs('#passwordInput').value.trim();
+      const user = USERS.find(u => u.username === username && u.password === password);
+      const errorEl = qs('#loginError');
+      if (!user) {
+        errorEl.textContent = 'Invalid username or password.';
+        return;
+      }
+      saveUserSession(user);
+      renderAppForUser(user);
+    });
+  }
+
+  // Render app UI based on logged user role
+  function renderAppForUser(user) {
+    if (!user) {
+      renderLogin();
+      return;
+    }
+
+    if (user.role === 'superadmin') {
+      renderSuperAdminDashboard(user);
+    } else if (user.role === 'manager') {
+      renderManagerDashboard(user);
+    } else if (user.role === 'agent') {
+      renderAgentDashboard(user);
+    }
+  }
+
+  // Common header with logout for all dashboards
+  function renderHeader(user) {
+    return `
+      <div class="flex-between" style="margin-bottom:1em;">
+        <div><strong>Hello, ${user.name} (${user.role})</strong></div>
+        <button id="logoutBtn" aria-label="Log out">Logout</button>
+      </div>
+    `;
+  }
+
+  // MANAGER DASHBOARD
+  function renderManagerDashboard(user) {
+    let html = renderHeader(user);
+    html += `
+      <h2 class="dashboard-title">Manager Dashboard - ${user.team}</h2>
+      <button id="btnNewLog">Create New Coaching Log</button>
+
+      <h3>Agents and their Coaching Logs</h3>
+      <div id="managerAgentLogs"></div>
+    `;
+
+    qs('#app').innerHTML = html;
+
+    qs('#logoutBtn').addEventListener('click', () => {
+      clearUserSession();
+      renderLogin();
+    });
+
+    qs('#btnNewLog').addEventListener('click', () => {
+      renderCreateLogForm(user);
+    });
+
+    renderManagerLogsList(user);
+  }
+
+  function renderManagerLogsList(user) {
+    const container = qs('#managerAgentLogs');
+    const logs = loadLogs();
+
+    // Filter logs for this manager's agents (all agents assigned to this manager)
+    const assignedAgentIds = user.agents || [];
+    let html = '';
+
+    if (assignedAgentIds.length === 0) {
+      html = '<p>You have no assigned agents.</p>';
+      container.innerHTML = html;
+      return;
+    }
+
+    assignedAgentIds.forEach(agentId => {
+      const agent = getAgentById(agentId);
+      if (!agent) return;
+      const agentLogs = logs.filter(log => log.agentId === agentId);
+
+      html += `<h4>${agent.name}</h4>`;
+      if (agentLogs.length === 0) {
+        html += `<p>No coaching logs for this agent.</p>`;
+      } else {
+        html += `
+          <table aria-label="Coaching logs for ${agent.name}">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Discussion Notes</th>
+                <th>Action Plan</th>
+                <th>Follow-up Date</th>
+                <th>Sign-off Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        agentLogs.forEach(log => {
+          html += `
+            <tr>
+              <td>${formatDateDisplay(log.date)}</td>
+              <td>${escapeHTML(log.notes)}</td>
+              <td>${escapeHTML(log.actionPlan)}</td>
+              <td>${log.followUpDate ? formatDateDisplay(log.followUpDate) : '-'}</td>
+              <td>${log.signedOff ? '<span class="label-status label-completed" aria-label="Completed">Completed</span>' : '<span class="label-status label-pending" aria-label="Pending">Pending</span>'}</td>
+              <td>
+                <button class="btnEditLog" data-id="${log.id}" ${log.signedOff ? 'disabled' : ''}>Edit</button>
+              </td>
+            </tr>
+          `;
+        });
+        html += `</tbody></table>`;
+      }
+    });
+
+    container.innerHTML = html;
+
+    // Add handlers for edit buttons
+    qsa('.btnEditLog').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const logId = e.target.getAttribute('data-id');
+        const logs = loadLogs();
+        const log = logs.find(l => l.id === logId);
+        if (log) {
+          renderEditLogForm(user, log);
+        }
+      });
+    });
+  }
+
+  // Escape HTML for safe display
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, function(m) {
+      switch (m) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return m;
+      }
+    });
+  }
+
+  // FORM TO CREATE NEW LOG (Manager)
+  function renderCreateLogForm(user) {
+    // Show form with input fields & agent dropdown (from assigned agents)
+    let html = renderHeader(user);
+    html += `
+      <h2>Create Coaching Log</h2>
+      <form id="createLogForm">
+        <div class="form-group">
+          <label for="agentSelect">Agent Name</label>
+          <select id="agentSelect" required>
+            <option value="" disabled selected>Select agent</option>
+            ${user.agents.map(id => {
+              const agent = getAgentById(id);
+              return agent ? `<option value="${agent.id}">${agent.name}</option>` : '';
+            }).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="dateInput">Date of Coaching</label>
+          <input type="date" id="dateInput" required max="${formatDateYYYYMMDD(new Date())}" />
+        </div>
+        <div class="form-group">
+          <label for="notesInput">Discussion Notes</label>
+          <textarea id="notesInput" required maxlength="1000" placeholder="Write coaching notes..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="actionPlanInput">Action Plan</label>
+          <textarea id="actionPlanInput" required maxlength="1000" placeholder="Write action plan..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="followUpDateInput">Follow-up Date (optional)</label>
+          <input type="date" id="followUpDateInput" min="${formatDateYYYYMMDD(new Date())}" />
+        </div>
+        <button type="submit">Submit Coaching Log</button>
+        <button type="button" id="cancelBtn" style="margin-left: 1em; background-color: #666;">Cancel</button>
+      </form>
+      <p id="formError" class="error-message" aria-live="polite"></p>
+    `;
+
+    qs('#app').innerHTML = html;
+
+    qs('#logoutBtn').addEventListener('click', () => {
+      clearUserSession();
+      renderLogin();
+    });
+
+    qs('#cancelBtn').addEventListener('click', () => {
+      renderManagerDashboard(user);
+    });
+
+    qs('#createLogForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const agentId = qs('#agentSelect').value;
+      const date = qs('#dateInput').value;
+      const notes = qs('#notesInput').value.trim();
+      const actionPlan = qs('#actionPlanInput').value.trim();
+      const followUpDate = qs('#followUpDateInput').value;
+
+      // Validation
+      const errorEl = qs('#formError');
+      errorEl.textContent = '';
+
+      if (!agentId || !date || !notes || !actionPlan) {
+        errorEl.textContent = 'Please fill in all required fields.';
+        return;
+      }
+
+      // Create new log
+      const agent = getAgentById(agentId);
+      if (!agent) {
+        errorEl.textContent = 'Selected agent not found.';
+        return;
+      }
+
+      const logs = loadLogs();
+      const newLog = {
+        id: generateId(),
+        agentId: agent.id,
+        agentName: agent.name,
+        managerId: user.id,
+        managerName: user.name,
+        date,
+        notes,
+        actionPlan,
+        followUpDate: followUpDate || null,
+        signedOff: false,
+        signedOffAt: null,
+      };
+
+      logs.push(newLog);
+      saveLogs(logs);
+
+      alert('Coaching log created successfully.');
+      renderManagerDashboard(user);
+    });
+  }
+
+  // FORM TO EDIT EXISTING LOG (Manager) - only allowed if not signed off
+  function renderEditLogForm(user, log) {
+    if (log.signedOff) {
+      alert('This coaching log is completed and locked.');
+      renderManagerDashboard(user);
+      return;
+    }
+    let html = renderHeader(user);
+    html += `
+      <h2>Edit Coaching Log</h2>
+      <form id="editLogForm">
+        <p><strong>Agent:</strong> ${escapeHTML(log.agentName)}</p>
+        <div class="form-group">
+          <label for="dateInput">Date of Coaching</label>
+          <input type="date" id="dateInput" required max="${formatDateYYYYMMDD(new Date())}" value="${formatDateYYYYMMDD(log.date)}" />
+        </div>
+        <div class="form-group">
+          <label for="notesInput">Discussion Notes</label>
+          <textarea id="notesInput" required maxlength="1000">${escapeHTML(log.notes)}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="actionPlanInput">Action Plan</label>
+          <textarea id="actionPlanInput" required maxlength="1000">${escapeHTML(log.actionPlan)}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="followUpDateInput">Follow-up Date (optional)</label>
+          <input type="date" id="followUpDateInput" min="${formatDateYYYYMMDD(new Date())}" value="${log.followUpDate ? formatDateYYYYMMDD(log.followUpDate) : ''}" />
+        </div>
+        <button type="submit">Save Changes</button>
+        <button type="button" id="cancelBtn" style="margin-left: 1em; background-color: #666;">Cancel</button>
+      </form>
+      <p id="formError" class="error-message" aria-live="polite"></p>
+    `;
+
+    qs('#app').innerHTML = html;
+    qs('#logoutBtn').addEventListener('click', () => {
+      clearUserSession();
+      renderLogin();
+    });
+
+    qs('#cancelBtn').addEventListener('click', () => {
+      renderManagerDashboard(user);
+    });
+
+    qs('#editLogForm').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const date = qs('#dateInput').value;
+      const notes = qs('#notesInput').value.trim();
+      const actionPlan = qs('#actionPlanInput').value.trim();
+      const followUpDate = qs('#followUpDateInput').value;
+
+      const errorEl = qs('#formError');
+      errorEl.textContent = '';
+
+      if (!date || !notes || !actionPlan) {
+        errorEl.textContent = 'Please fill in all required fields.';
+        return;
+      }
+
+      const logs = loadLogs();
+      const index = logs.findIndex(l => l.id === log.id);
+      if (index === -1) {
+        alert('Log not found.');
+        renderManagerDashboard(user);
+        return;
+      }
+
+      logs[index].date = date;
+      logs[index].notes = notes;
+      logs[index].actionPlan = actionPlan;
+      logs[index].followUpDate = followUpDate || null;
+
+      saveLogs(logs);
+      alert('Coaching log updated successfully.');
+      renderManagerDashboard(user);
+    });
+  }
+
+  // AGENT DASHBOARD
+  function renderAgentDashboard(user) {
+    let html = renderHeader(user);
+    html += `
+      <h2 class="dashboard-title">Agent Dashboard</h2>
+      <h3>Your Coaching History</h3>
+      <div id="agentLogs"></div>
+    `;
+    qs('#app').innerHTML = html;
+
+    qs('#logoutBtn').addEventListener('click', () => {
+      clearUserSession();
+      renderLogin();
+    });
+
+    renderAgentLogs(user);
+  }
+
+  function renderAgentLogs(user) {
+    const container = qs('#agentLogs');
+    const logs = loadLogs().filter(log => log.agentId === user.id);
+
+    if (logs.length === 0) {
+      container.innerHTML = '<p>You have no coaching logs yet.</p>';
+      return;
+    }
+
+    let html = `
+      <table aria-label="Your coaching history">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Action Plan</th>
+            <th>Follow-up Date</th>
+            <th>Status</th>
+            <th>Sign Off</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    logs.forEach(log => {
+      const canSignOff = !log.signedOff;
+
+      html += `
+        <tr>
+          <td>${formatDateDisplay(log.date)}</td>
+          <td>${escapeHTML(log.notes)}</td>
+          <td>${escapeHTML(log.actionPlan)}</td>
+          <td>${log.followUpDate ? formatDateDisplay(log.followUpDate) : '-'}</td>
+          <td>${log.signedOff ? '<span class="label-status label-completed">Completed</span>' : '<span class="label-status label-pending">Pending</span>'}</td>
+          <td>
+            ${canSignOff ? `<input type="checkbox" class="signoff-checkbox" data-id="${log.id}" aria-label="Sign off coaching session on ${formatDateDisplay(log.date)}" />`
+            : '<span aria-hidden="true">✔</span>'}
+          </td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Add event listeners for sign off checkbox
+    qsa('.signoff-checkbox').forEach(chk => {
+      chk.addEventListener('change', e => {
+        const logId = e.target.getAttribute('data-id');
+        if (e.target.checked) {
+          // Confirm sign off
+          if (!confirm('Are you sure you want to sign off this coaching session? This action is final.')) {
+            e.target.checked = false;
+            return;
+          }
+          const logs = loadLogs();
+          const index = logs.findIndex(l => l.id === logId);
+          if (index !== -1) {
+            logs[index].signedOff = true;
+            logs[index].signedOffAt = new Date().toISOString();
+            saveLogs(logs);
+            alert('You have signed off this session.');
+            renderAgentDashboard(user);
+          }
+        }
+      });
+    });
+  }
+
+  // SUPER ADMIN DASHBOARD
+  function renderSuperAdminDashboard(user) {
+    let html = renderHeader(user);
+    html += `
+      <h2 class="dashboard-title">Super Admin Dashboard</h2>
+      <div class="filter-bar" aria-label="Filters">
+        <select id="filterTeam">
+          <option value="">All Teams</option>
+          ${Array.from(new Set(USERS.filter(u => u.role === 'agent').map(a => a.team))).map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <select id="filterManager">
+          <option value="">All Managers</option>
+          ${USERS.filter(u => u.role === 'manager').map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
+        </select>
+        <select id="filterAgent">
+          <option value="">All Agents</option>
+          ${USERS.filter(u => u.role === 'agent').map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+        </select>
+        <input type="date" id="filterDateFrom" aria-label="Filter logs from date" />
+        <input type="date" id="filterDateTo" aria-label="Filter logs to date" />
+        <button id="btnFilterLogs">Filter</button>
+        <button id="btnExportCSV" class="export-button">Export CSV</button>
+      </div>
+      <div id="adminLogs"></div>
+    `;
+
+    qs('#app').innerHTML = html;
+
+    qs('#logoutBtn').addEventListener('click', () => {
+      clearUserSession();
+      renderLogin();
+    });
+
+    const filterHandler = () => {
+      const team = qs('#filterTeam').value;
+      const manager = qs('#filterManager').value;
+      const agent = qs('#filterAgent').value;
+      let dateFrom = qs('#filterDateFrom').value;
+      let dateTo = qs('#filterDateTo').value;
+
+      // Normalize dates
+      dateFrom = dateFrom ? new Date(dateFrom) : null;
+      dateTo = dateTo ? new Date(dateTo) : null;
+
+      const logs = loadLogs().filter(log => {
+        const agentUser = getAgentById(log.agentId);
+        if (!agentUser) return false;
+
+        if (team && agentUser.team !== team) return false;
+        if (manager && log.managerId !== manager) return false;
+        if (agent && log.agentId !== agent) return false;
+
+        const logDate = new Date(log.date);
+        if (dateFrom && logDate < dateFrom) return false;
+        if (dateTo && logDate > dateTo) return false;
+
+        return true;
+      });
+
+      renderLogsTable(logs, qs('#adminLogs'));
+    };
+
+    qs('#btnFilterLogs').addEventListener('click', filterHandler);
+
+    qs('#btnExportCSV').addEventListener('click', () => {
+      const rows = [];
+      const headers = ["Agent Name", "Manager Name", "Date", "Discussion Notes", "Action Plan", "Follow-up Date", "Sign-off Status", "Sign-off Date"];
+      rows.push(headers);
+
+      const filteredLogsHtml = qs('#adminLogs table tbody');
+      // Instead of reading the DOM, re-filter logs to get the same data
+      const team = qs('#filterTeam').value;
+      const manager = qs('#filterManager').value;
+      const agent = qs('#filterAgent').value;
+      let dateFrom = qs('#filterDateFrom').value;
+      let dateTo = qs('#filterDateTo').value;
+
+      dateFrom = dateFrom ? new Date(dateFrom) : null;
+      dateTo = dateTo ? new Date(dateTo) : null;
+
+      const logs = loadLogs().filter(log => {
+        const agentUser = getAgentById(log.agentId);
+        if (!agentUser) return false;
+
+        if (team && agentUser.team !== team) return false;
+        if (manager && log.managerId !== manager) return false;
+        if (agent && log.agentId !== agent) return false;
+
+        const logDate = new Date(log.date);
+        if (dateFrom && logDate < dateFrom) return false;
+        if (dateTo && logDate > dateTo) return false;
+
+        return true;
+      });
+
+      logs.forEach(log => {
+        rows.push([
+          `"${log.agentName}"`,
+          `"${log.managerName}"`,
+          formatDateDisplay(log.date),
+          `"${log.notes.replace(/"/g, '""')}"`,
+          `"${log.actionPlan.replace(/"/g, '""')}"`,
+          log.followUpDate ? formatDateDisplay(log.followUpDate) : '',
+          log.signedOff ? 'Completed' : 'Pending',
+          log.signedOffAt ? formatDateDisplay(log.signedOffAt) : '',
+        ]);
+      });
+
+      const csvContent = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const downloadLink = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      downloadLink.href = url;
+      downloadLink.download = 'coaching_logs_export.csv';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    });
+
+    // Initial load
+    filterHandler();
+  }
+
+  // Render logs in a table inside container
+  function renderLogsTable(logs, container) {
+    if (logs.length === 0) {
+      container.innerHTML = '<p>No coaching logs found with current filters.</p>';
+      return;
+    }
+
+    let html = `
+      <table aria-label="Coaching logs">
+        <thead>
+          <tr>
+            <th>Agent Name</th>
+            <th>Manager Name</th>
+            <th>Date</th>
+            <th>Discussion Notes</th>
+            <th>Action Plan</th>
+            <th>Follow-up Date</th>
+            <th>Sign-off Status</th>
+            <th>Sign-off Date</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    logs.forEach(log => {
+      html += `
+        <tr>
+          <td>${escapeHTML(log.agentName)}</td>
+          <td>${escapeHTML(log.managerName)}</td>
+          <td>${formatDateDisplay(log.date)}</td>
+          <td>${escapeHTML(log.notes)}</td>
+          <td>${escapeHTML(log.actionPlan)}</td>
+          <td>${log.followUpDate ? formatDateDisplay(log.followUpDate) : '-'}</td>
+          <td>${log.signedOff ? '<span class="label-status label-completed" aria-label="Completed">Completed</span>' : '<span class="label-status label-pending" aria-label="Pending">Pending</span>'}</td>
+          <td>${log.signedOffAt ? formatDateDisplay(log.signedOffAt) : '-'}</td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  // APP INIT
+  const loggedUser = loadUserSession();
+  if (loggedUser) {
+    renderAppForUser(loggedUser);
+  } else {
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>
+
